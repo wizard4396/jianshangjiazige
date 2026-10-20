@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>绿洲鉴赏家管理 · 鉴赏家资格管理（交互原型）</title>
+<style>
+/* ============================================================
+   1. 设计 token（通用 B 端浅色 · 类飞书）
+   ============================================================ */
+:root{
+  --bg-page:#FFFFFF; --bg-app:#F4F5F7; --bg-subtle:#F7F8FA; --bg-hover:#F7F8FA;
+  --primary:#3370FF; --primary-hover:#4E7FFF; --primary-active:#2B5FD9; --primary-weak:#E8F0FF;
+  --success:#00B42A; --warning:#FF7D00; --danger:#F53F3F;
+  --success-weak:#E8FFEA; --warning-weak:#FFF3E8; --danger-weak:#FFECE8;
+  --text-1:#1F2329; --text-2:#646A73; --text-3:#8F959E; --text-4:#C9CDD4;
+  --border:#E5E6EB; --border-strong:#DEE0E3; --line:#F2F3F5;
+  --radius-s:6px; --radius-m:8px; --radius-l:12px;
+  --shadow-modal:0 8px 32px rgba(31,35,41,.12); --shadow-pop:0 4px 16px rgba(31,35,41,.12);
+}
+
+/* ============================================================
+   2. 基础层
+   ============================================================ */
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg-app); color:var(--text-1); font-size:13px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,p{margin:0;}
+button{font-family:inherit;cursor:pointer;}
+a{color:var(--primary);text-decoration:none;cursor:pointer;}
+a:hover{color:var(--primary-hover);}
+.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;}
+
+/* ============================================================
+   3. 布局
+   ============================================================ */
+.app{min-height:100vh;display:flex;flex-direction:column;}
+.app-header{
+  position:sticky;top:0;z-index:30;background:var(--bg-page);
+  border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:24px;height:56px;
+}
+.app-header__brand{font-size:15px;font-weight:600;color:var(--text-1);display:flex;align-items:center;gap:8px;}
+.app-header__brand::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--primary);}
+.app-nav{display:flex;gap:4px;}
+.app-body{flex:1;padding:20px 24px 40px;max-width:100%;}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.page-head h1{font-size:18px;font-weight:600;}
+.page-desc{color:var(--text-3);font-size:12px;margin-top:4px;}
+.app-foot{padding:16px 24px 28px;display:flex;gap:16px;justify-content:center;align-items:center;}
+.demo-link{font-size:12px;color:var(--text-3);text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
+.demo-link:hover{color:var(--text-2);}
+
+/* ============================================================
+   4. 组件层
+   ============================================================ */
+/* 4.1 导航 pill */
+.app-nav__item{
+  border:0;background:transparent;color:var(--text-2);padding:7px 14px;border-radius:var(--radius-s);
+  font-size:13px;font-weight:500;
+}
+.app-nav__item:hover{background:var(--bg-subtle);color:var(--text-1);}
+.app-nav__item.is-on{background:var(--primary-weak);color:var(--primary);}
+
+/* 4.2 页内 Tab */
+.fb-tabs{display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.fb-tabs__item{
+  border:0;background:transparent;padding:10px 0;color:var(--text-2);font-size:14px;font-weight:500;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.fb-tabs__item:hover{color:var(--text-1);}
+.fb-tabs__item.is-on{color:var(--primary);border-bottom-color:var(--primary);}
+
+/* 4.3 卡片 */
+.card{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-m);padding:16px;}
+
+/* 4.4 按钮 */
+.fb-btn{
+  height:32px;padding:0 14px;border:1px solid var(--border);border-radius:var(--radius-s);
+  background:var(--bg-page);color:var(--text-1);font-size:13px;display:inline-flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.fb-btn:hover{border-color:var(--border-strong);background:var(--bg-subtle);}
+.fb-btn:disabled{cursor:not-allowed;color:var(--text-4);background:var(--bg-subtle);border-color:var(--border);}
+.fb-btn--primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+.fb-btn--primary:hover{background:var(--primary-hover);border-color:var(--primary-hover);}
+.fb-btn--primary:active{background:var(--primary-active);border-color:var(--primary-active);}
+.fb-btn--primary:disabled{background:#A9C2FF;border-color:#A9C2FF;color:#fff;}
+.fb-btn--danger{background:var(--danger);border-color:var(--danger);color:#fff;}
+.fb-btn--danger:hover{background:#E53535;border-color:#E53535;}
+.fb-btn--text{border-color:transparent;background:transparent;padding:0 6px;height:auto;color:var(--primary);}
+.fb-btn--text:hover{background:transparent;color:var(--primary-hover);text-decoration:underline;text-underline-offset:2px;}
+.fb-btn--text-danger{color:var(--danger);}
+.fb-btn--text-danger:hover{color:#E53535;}
+
+/* 4.5 表单控件 */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.field > label{font-size:13px;color:var(--text-2);}
+.fb-input,.fb-select,.fb-textarea{
+  height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-s);
+  font-size:13px;color:var(--text-1);background:var(--bg-page);outline:none;font-family:inherit;
+}
+.fb-input:focus,.fb-select:focus,.fb-textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-weak);}
+.fb-input::placeholder,.fb-textarea::placeholder{color:var(--text-4);}
+.fb-select{cursor:pointer;padding-right:26px;appearance:none;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' stroke='%238F959E' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;}
+.fb-select:disabled{color:var(--text-2);background-color:var(--bg-subtle);cursor:default;}
+.fb-textarea{height:auto;min-height:136px;padding:8px 10px;resize:vertical;line-height:1.7;}
+.fb-textarea--sm{min-height:64px;}
+.reason-count{font-size:12px;color:var(--text-3);text-align:right;margin-top:-2px;}
+.field__hint{font-size:12px;color:var(--text-3);line-height:1.6;}
+.fb-input--date{width:132px;}
+
+/* 4.6 筛选条 */
+.filter-bar{
+  display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;
+  padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:0;
+}
+.filter-item{display:flex;flex-direction:column;gap:6px;}
+.filter-item > label{font-size:12px;color:var(--text-3);}
+.filter-item .fb-input{width:168px;}
+.range-sep{display:flex;align-items:center;gap:6px;color:var(--text-3);}
+.filter-actions{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.list-meta{display:flex;align-items:center;gap:12px;padding:12px 0 8px;color:var(--text-2);font-size:12px;}
+.list-meta .spacer{flex:1;}
+
+/* 4.7 表格 */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-m);background:var(--bg-page);}
+.fb-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;}
+.fb-table th{
+  background:var(--bg-subtle);color:var(--text-2);font-weight:500;text-align:left;
+  padding:10px 9px;white-space:nowrap;border-bottom:1px solid var(--border);
+}
+.fb-table td{padding:11px 9px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.fb-table tbody tr:last-child td{border-bottom:0;}
+.fb-table tbody tr:hover td{background:var(--bg-hover);}
+.fb-table--tight th,.fb-table--tight td{padding:8px 10px;}
+.fb-table--log th,.fb-table--log td{padding:6px 10px;}
+.col-op{position:sticky;right:0;background:var(--bg-page);box-shadow:-8px 0 8px -8px rgba(31,35,41,.12);}
+.fb-table th.col-op{background:var(--bg-subtle);}
+.fb-table tbody tr:hover td.col-op{background:var(--bg-hover);}
+.cell-sub{color:var(--text-3);}
+.cell-ellipsis{max-width:150px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom;}
+/* 长文本单元格：仅「移除原因」列开口换行，其余列仍保持 nowrap */
+.fb-table td.cell-wrap{white-space:normal;word-break:break-word;line-height:1.5;}
+/* 原因文本用固定宽度内联块，避免 auto 布局把它压缩成一字一行 */
+.reason-text{display:inline-block;width:140px;white-space:normal;word-break:break-word;}
+/* Tab2 列多，收紧左右内边距以容纳 15 列 */
+#tableRemoved th,#tableRemoved td{padding-left:6px;padding-right:6px;}
+
+/* 4.8 徽标 */
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;line-height:18px;white-space:nowrap;}
+.badge--gray{background:var(--bg-subtle);color:var(--text-2);}
+.badge--blue{background:var(--primary-weak);color:var(--primary);}
+.badge--green{background:var(--success-weak);color:var(--success);}
+.badge--orange{background:var(--warning-weak);color:var(--warning);}
+.badge--red{background:#FFECE8;color:#D83931;}
+.badge--lv1{background:#F2F3F5;color:#646A73;}
+.badge--lv2{background:#E8F0FF;color:#3370FF;}
+.badge--lv3{background:#E8FFEA;color:#00A32A;}
+.badge--lv4{background:#FFF3E8;color:#CC6A00;}
+.badge--lv5{background:#FFECE8;color:#D83931;}
+
+/* 4.9 弹窗 */
+.mask{position:fixed;inset:0;background:rgba(31,35,41,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
+.modal{background:var(--bg-page);border-radius:var(--radius-l);box-shadow:var(--shadow-modal);width:100%;max-height:calc(100vh - 48px);display:flex;flex-direction:column;}
+.modal--sm{max-width:420px;}
+.modal--md{max-width:680px;}
+.modal__hd{padding:18px 20px;font-size:15px;font-weight:600;border-bottom:1px solid var(--line);}
+.modal__bd{padding:20px;overflow-y:auto;}
+.modal__ft{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;align-items:center;}
+.modal__ft .left{margin-right:auto;}
+
+/* 4.11 上传框 */
+.upload{
+  border:1px dashed var(--border-strong);border-radius:var(--radius-m);background:var(--bg-subtle);
+  padding:22px;text-align:center;color:var(--text-3);font-size:13px;cursor:pointer;transition:.15s;
+}
+.upload:hover{border-color:var(--primary);background:var(--primary-weak);color:var(--primary);}
+.upload__file{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text-1);}
+.upload__name{font-weight:500;}
+
+/* 4.12 提示条 / toast / 空态 */
+.alert{padding:10px 12px;border-radius:var(--radius-s);font-size:13px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;}
+.alert--warning{background:var(--warning-weak);color:#8A4B00;}
+.alert--info{background:var(--primary-weak);color:#1F4FCC;}
+.alert__icon{flex:0 0 auto;font-weight:700;}
+.toast{
+  position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:200;
+  background:rgba(31,35,41,.9);color:#fff;padding:9px 18px;border-radius:var(--radius-s);font-size:13px;
+  box-shadow:var(--shadow-pop);max-width:80vw;
+}
+.toast--success{background:rgba(0,150,40,.94);}
+.toast--danger{background:rgba(215,50,50,.94);}
+.empty{padding:56px 20px;text-align:center;color:var(--text-3);}
+.empty__icon{width:56px;height:56px;margin:0 auto 12px;opacity:.5;}
+.empty__title{font-size:14px;color:var(--text-2);margin-bottom:4px;}
+.empty__desc{font-size:12px;color:var(--text-3);}
+
+/* 4.13 编辑弹窗：两列栅格 + 只读字段（灰底但文字保持正常色） */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+.form-grid .field{margin-bottom:0;}
+.form-grid .span-2{grid-column:1 / -1;}
+.fb-input:disabled{
+  background:var(--bg-subtle);border-color:var(--border);color:var(--text-1);
+  cursor:default;opacity:1;-webkit-text-fill-color:var(--text-1);
+}
+
+/* 4.13b 校验结果 */
+.verify-stat{font-size:13px;line-height:1.8;color:var(--text-1);background:var(--bg-subtle);border-radius:var(--radius-s);padding:12px 14px;margin-bottom:14px;}
+.verify-stat b{color:var(--primary);font-weight:600;}
+.verify-stat b.warn{color:var(--warning);}
+.verify-stat b.bad{color:var(--danger);}
+.verify-sub{font-size:13px;color:var(--text-2);margin:0 0 8px;font-weight:500;}
+.verify-note{font-size:12px;color:var(--text-3);padding:12px 0 0;}
+
+/* ============================================================
+   5. 工具类（放最后，用于覆盖组件默认宽度）
+   ============================================================ */
+.w-auto{width:auto;}
+.mt-16{margin-top:16px;}
+.mt-8{margin-top:8px;}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 顶部导航：模拟「绿洲鉴赏家管理」下的两个功能页 -->
+  <header class="app-header">
+    <div class="app-header__brand">绿洲鉴赏家管理</div>
+    <nav class="app-nav" id="appNav">
+      <button class="app-nav__item is-on" id="navQuery" data-view="query">鉴赏家资格查询管理</button>
+      <button class="app-nav__item" id="navAdd" data-view="add">鉴赏家名单添加</button>
+    </nav>
+  </header>
+
+  <main class="app-body">
+
+    <!-- ==================== 页 A · 鉴赏家资格查询管理 ==================== -->
+    <section class="page" id="viewQuery">
+      <div class="page-head">
+        <div>
+          <h1>鉴赏家资格查询管理</h1>
+          <div class="page-desc">查看现有鉴赏家名单，支持移除资格 / 编辑身份标签与备注；被移除的鉴赏家进入「已移除」列表，可恢复资格。</div>
+        </div>
+      </div>
+
+      <div class="fb-tabs" id="queryTabs">
+        <button class="fb-tabs__item is-on" data-tab="list">鉴赏家列表</button>
+        <button class="fb-tabs__item" data-tab="removed">已移除的鉴赏家列表</button>
+      </div>
+
+      <!-- Tab1 鉴赏家列表 -->
+      <div id="regionList">
+        <div class="card">
+          <div class="filter-bar" id="filterBarList"></div>
+          <div class="list-meta">
+            <span id="countList"></span>
+            <span class="spacer"></span>
+            <button class="fb-btn" id="btnExportList">导出</button>
+          </div>
+          <div class="table-wrap" id="wrapList">
+            <table class="fb-table" id="tableList" style="min-width:1304px;">
+              <colgroup>
+                <col style="width:96px"><col style="width:84px"><col style="width:146px"><col style="width:88px">
+                <col style="width:70px"><col style="width:146px"><col style="width:76px"><col style="width:100px">
+                <col style="width:146px"><col style="width:100px"><col style="width:92px"><col style="width:160px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>玩家名称</th><th>uid</th><th>openid</th><th>添加方式</th>
+                  <th>添加人</th><th>加入时间</th><th>鉴赏家等级</th><th>鉴赏内容数量</th>
+                  <th>最近鉴赏时间</th><th>是否是创作者</th><th>身份标签</th><th class="col-op">操作</th>
+                </tr>
+              </thead>
+              <tbody id="bodyList"></tbody>
+            </table>
+          </div>
+          <div id="emptyList"></div>
+        </div>
+      </div>
+
+      <!-- Tab2 已移除的鉴赏家列表 -->
+      <div id="regionRemoved" class="hidden">
+        <div class="card">
+          <div class="filter-bar" id="filterBarRemoved"></div>
+          <div class="list-meta">
+            <span id="countRemoved"></span>
+            <span class="spacer"></span>
+            <button class="fb-btn" id="btnOpLog">操作日志</button>
+            <button class="fb-btn" id="btnExportRemoved">导出</button>
+          </div>
+          <div class="table-wrap" id="wrapRemoved">
+            <table class="fb-table" id="tableRemoved" style="min-width:100%;">
+              <colgroup>
+                <col style="width:92px"><col style="width:80px"><col style="width:118px"><col style="width:84px">
+                <col style="width:66px"><col style="width:132px"><col style="width:74px"><col style="width:96px">
+                <col style="width:132px"><col style="width:96px"><col style="width:88px"><col style="width:92px">
+                <col style="width:132px"><col style="width:180px"><col style="width:90px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>玩家名称</th><th>uid</th><th>openid</th><th>添加方式</th>
+                  <th>添加人</th><th>加入时间</th><th>鉴赏家等级</th><th>鉴赏内容数量</th>
+                  <th>最近鉴赏时间</th><th>是否是创作者</th><th>身份标签</th><th>移除操作人</th>
+                  <th>移除操作日期</th><th>移除原因</th><th class="col-op">操作</th>
+                </tr>
+              </thead>
+              <tbody id="bodyRemoved"></tbody>
+            </table>
+          </div>
+          <div id="emptyRemoved"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页 B · 鉴赏家名单添加 ==================== -->
+    <section class="page hidden" id="viewAdd">
+      <div class="page-head">
+        <div>
+          <h1>鉴赏家名单添加</h1>
+          <div class="page-desc">批量添加鉴赏家（输入 uid 或上传 excel），提交后先校验、确认后导入；下方为添加记录。</div>
+        </div>
+        <button class="fb-btn fb-btn--primary" id="btnOpenAdd">添加鉴赏家</button>
+      </div>
+
+      <div class="card">
+        <div class="filter-bar" id="filterBarAdd"></div>
+        <div class="list-meta">
+          <span id="countAdd"></span>
+          <span class="spacer"></span>
+          <button class="fb-btn" id="btnExportAdd">导出</button>
+        </div>
+        <div class="table-wrap" id="wrapAdd">
+          <table class="fb-table" id="tableAdd" style="min-width:960px;">
+            <colgroup>
+              <col style="width:140px"><col style="width:110px"><col style="width:130px"><col style="width:130px">
+              <col style="width:180px"><col style="width:140px"><col style="width:120px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>添加方式</th><th>添加数量</th><th>添加成功数量</th><th>添加失败数量</th>
+                <th>添加时间</th><th>添加人</th><th class="col-op">操作</th>
+              </tr>
+            </thead>
+            <tbody id="bodyAdd"></tbody>
+          </table>
+        </div>
+        <div id="emptyAdd"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-foot">
+    <span class="demo-link" id="demoLoad">载入演示数据</span>
+    <span class="demo-link" id="demoClear">清空</span>
+  </footer>
+</div>
+
+<!-- ==================== 通用二次确认弹窗 ==================== -->
+<div class="mask hidden" id="maskConfirm">
+  <div class="modal modal--sm">
+    <div class="modal__hd" id="confirmTitle">操作确认</div>
+    <div class="modal__bd">
+      <p id="confirmMsg" style="color:var(--text-1);line-height:1.8;"></p>
+      <div id="confirmExtra" class="hidden"></div>
+    </div>
+    <div class="modal__ft">
+      <button class="fb-btn" id="confirmCancel">取消</button>
+      <button class="fb-btn fb-btn--primary" id="confirmOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 添加鉴赏家弹窗 ==================== -->
+<div class="mask hidden" id="maskAdd">
+  <div class="modal modal--md">
+    <div class="modal__hd">添加鉴赏家</div>
+    <div class="modal__bd">
+      <div class="field">
+        <label>添加方式</label>
+        <select class="fb-select w-auto" id="addSelect">
+          <option value="batch" selected>添加鉴赏家uid</option>
+          <option value="upload">上传鉴赏家uid</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>身份标签</label>
+        <select class="fb-select w-auto" id="addTag">
+          <option value="" selected>无</option>
+          <option value="内部成员">内部成员</option>
+          <option value="重要用户">重要用户</option>
+        </select>
+        <div class="field__hint">默认为「无」，可单选标记为「内部成员」或「重要用户」。</div>
+      </div>
+
+      <!-- 方式1：添加鉴赏家uid -->
+      <div id="paneBatch">
+        <div class="field">
+          <label>添加鉴赏家</label>
+          <textarea class="fb-textarea" id="inputUids" placeholder="请输入uid"></textarea>
+          <div class="field__hint">
+            每行一个 uid 代表一个鉴赏家，uid 后空一格可填写备注（选填）；最多不能超过 1000 条，多个用户换行输入；超出 1000 条的部分不导入。
+            <span class="demo-link" id="fillSample" style="margin-left:6px;">填入示例 uid</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方式2：上传鉴赏家uid -->
+      <div id="paneUpload" class="hidden">
+        <div class="field">
+          <label>待添加鉴赏家</label>
+          <div class="upload" id="uploadBox"><span class="upload__text">点击上传或拖拽文件到这里</span></div>
+          <input type="file" id="fileInput" class="hidden" accept=".xls,.xlsx">
+          <div class="field__hint">
+            点击下载导入模板
+            <a id="dlTpl">鉴赏家名单导入.xlsx</a>（单次最多导入 1000 条，模板第一列为 uid，第二列为备注，备注选填）
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal__ft">
+      <button class="fb-btn" id="addCancel">取消</button>
+      <button class="fb-btn fb-btn--primary" id="addSubmit" disabled>添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 编辑鉴赏家弹窗 ==================== -->
+<div class="mask hidden" id="maskEdit">
+  <div class="modal modal--md">
+    <div class="modal__hd">编辑鉴赏家</div>
+    <div class="modal__bd">
+      <div class="alert alert--info mb-14">以下信息除「身份标签」「备注」外均只读展示，不可修改。</div>
+      <div class="form-grid">
+        <div class="field"><label>玩家名称</label><input class="fb-input" id="editName" disabled></div>
+        <div class="field"><label>uid</label><input class="fb-input" id="editUid" disabled></div>
+        <div class="field"><label>openid</label><input class="fb-input" id="editOpenid" disabled></div>
+        <div class="field"><label>添加方式</label><input class="fb-input" id="editMethod" disabled></div>
+        <div class="field"><label>添加人</label><input class="fb-input" id="editAdder" disabled></div>
+        <div class="field"><label>加入时间</label><input class="fb-input" id="editJoin" disabled></div>
+        <div class="field"><label>鉴赏家等级</label><input class="fb-input" id="editLevel" disabled></div>
+        <div class="field"><label>鉴赏内容数量</label><input class="fb-input" id="editCount" disabled></div>
+        <div class="field"><label>最近鉴赏时间</label><input class="fb-input" id="editLastView" disabled></div>
+        <div class="field"><label>是否是创作者</label><input class="fb-input" id="editCreator" disabled></div>
+        <div class="field"><label>身份标签</label>
+          <select class="fb-select" id="editTag"></select>
+        </div>
+        <div class="field span-2"><label>备注</label>
+          <input class="fb-input" id="editRemark" maxlength="100" placeholder="请输入备注（选填）">
+        </div>
+      </div>
+    </div>
+    <div class="modal__ft">
+      <button class="fb-btn" id="editCancel">取消</button>
+      <button class="fb-btn fb-btn--primary" id="editSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 校验结果弹窗（提交 / 查看详情 复用） ==================== -->
+<div class="mask hidden" id="maskVerify">
+  <div class="modal modal--md">
+    <div class="modal__hd" id="verifyTitle">校验结果</div>
+    <div class="modal__bd">
+      <!-- 仅「查看详情」场景展示：添加方式回显（下拉置灰，不可改） -->
+      <div class="field hidden" id="verifyMethodWrap">
+        <label>添加方式</label>
+        <select class="fb-select w-auto" id="verifyMethod" disabled>
+          <option value="batch">添加鉴赏家uid</option>
+          <option value="upload">上传鉴赏家uid</option>
+        </select>
+      </div>
+      <div class="verify-stat" id="verifyStat"></div>
+      <div class="alert alert--warning hidden" id="verifyWarn">
+        <span class="alert__icon">!</span><span id="verifyWarnText"></span>
+      </div>
+      <div id="verifyFailWrap" class="hidden mt-16">
+        <div class="verify-sub">校验失败列表</div>
+        <div class="table-wrap">
+          <table class="fb-table fb-table--tight" style="min-width:100%;">
+            <thead><tr><th style="width:220px;">uid</th><th>不通过原因</th></tr></thead>
+            <tbody id="verifyFailBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="verify-note hidden" id="verifyNote"></div>
+    </div>
+    <div class="modal__ft">
+      <button class="fb-btn left hidden" id="verifyExport">导出失败清单</button>
+      <button class="fb-btn fb-btn--primary" id="verifyOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 操作日志弹窗（移除 / 恢复 留痕） ==================== -->
+<div class="mask hidden" id="maskLog">
+  <div class="modal modal--md">
+    <div class="modal__hd">操作日志</div>
+    <div class="modal__bd">
+      <div class="field__hint" style="margin-bottom:10px;">记录鉴赏家资格的移除与恢复操作，按操作时间倒序排列。</div>
+      <div class="table-wrap" style="max-height:54vh;overflow:auto;">
+        <table class="fb-table fb-table--tight fb-table--log" style="min-width:100%;">
+          <colgroup>
+            <col style="width:72px"><col style="width:112px"><col style="width:96px">
+            <col style="width:72px"><col style="width:96px"><col style="width:160px">
+          </colgroup>
+          <thead>
+            <tr><th>编号</th><th>玩家名称</th><th>uid</th><th>操作</th><th>操作人</th><th>操作时间</th></tr>
+          </thead>
+          <tbody id="bodyOpLog"></tbody>
+        </table>
+      </div>
+      <div id="emptyOpLog"></div>
+    </div>
+    <div class="modal__ft">
+      <button class="fb-btn fb-btn--primary" id="opLogClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. 常量
+   ============================================================ */
+var LEVELS = ["Lv1", "Lv2", "Lv3", "Lv4", "Lv5"];
+var LEVEL_FILTER = ["全部"].concat(LEVELS);
+var TAG_OPTIONS = ["内部成员", "重要用户"];   // 身份标签可选值（空字符串 = 无）
+var TAG_NONE = "无";
+var OPERATOR = "李小明";                 // 当前登录人（企微名称）
+var COOLDOWN_DAYS = 30;                  // 移除资格后的冷静期（需求：30 天，器材室可配）
+var MAX_BATCH = 1000;                    // 单次最多导入条数
+var FAIL_REASON = {
+  notFound: "未找到该玩家",
+  duplicate: "该 uid 在本次添加中重复",
+  already: "该 uid 已经是鉴赏家"
+};
+var FILTER_EMPTY_PLACEHOLDER = "全部";
+
+/* ============================================================
+   2. 工具函数
+   ============================================================ */
+function $(s) { return document.querySelector(s); }
+function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+function fmtDate(ts) {                 // 2026-10-13
+  var d = new Date(ts);
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+}
+function fmtDateTime(ts) {             // 2026-10-13 09:20:00
+  var d = new Date(ts);
+  return fmtDate(ts) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+}
+function fileStamp() {                 // 20261013
+  var d = new Date();
+  return "" + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
+}
+function toStringTs(str) { return new Date(str.replace(" ", "T")).getTime(); }
+function esc(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function lvClass(lv) { return "badge badge--lv" + (lv ? lv.replace("Lv", "") : "1"); }
+
+/* 身份标签：空 = 无（列表留空，不展示占位符）；内部成员（蓝）/ 重要用户（橙） */
+function tagBadgeHtml(tag) {
+  if (!tag) return "";
+  return '<span class="badge ' + (tag === "重要用户" ? "badge--orange" : "badge--blue") + '">' + esc(tag) + "</span>";
+}
+function tagOptionsHtml(selected) {
+  return '<option value=""' + (selected === "" ? " selected" : "") + ">" + TAG_NONE + "</option>" +
+    TAG_OPTIONS.map(function (t) {
+      return '<option value="' + t + '"' + (selected === t ? " selected" : "") + ">" + t + "</option>";
+    }).join("");
+}
+
+/* 添加方式文案：全站统一口径为「添加 uid」/「上传 excel」（评审拍板：筛选与添加均统一用 uid） */
+function methodLabelOf(method) {
+  return method === "upload" ? "上传 excel" : "添加 uid";
+}
+
+var toastTimer = null;
+function toast(msg, type) {
+  var el = $("#toast");
+  el.textContent = msg;
+  el.className = "toast" + (type ? " toast--" + type : "");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.className = "toast hidden"; }, 2400);
+}
+function emptyHtml(title, desc, withIcon) {
+  var icon = withIcon
+    ? '<svg class="empty__icon" viewBox="0 0 64 64" fill="none"><rect x="10" y="18" width="44" height="30" rx="4" stroke="#C9CDD4" stroke-width="2"/><path d="M10 28h44M22 18v-4a4 4 0 014-4h12a4 4 0 014 4v4" stroke="#C9CDD4" stroke-width="2"/><circle cx="24" cy="39" r="2.5" fill="#C9CDD4"/><circle cx="40" cy="39" r="2.5" fill="#C9CDD4"/></svg>'
+    : "";
+  return '<div class="empty">' + icon +
+    '<div class="empty__title">' + esc(title) + '</div>' +
+    (desc ? '<div class="empty__desc">' + esc(desc) + '</div>' : "") + '</div>';
+}
+
+/* 导出（零依赖：把表格转成 Excel 可打开的 .xls） */
+function downloadExcel(filename, headers, rows) {
+  try {
+    var html = '<html><head><meta charset="utf-8"></head><body><table border="1">';
+    html += "<tr>" + headers.map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") + "</tr>";
+    rows.forEach(function (r) {
+      html += "<tr>" + r.map(function (c) { return "<td>" + esc(c == null ? "" : c) + "</td>"; }).join("") + "</tr>";
+    });
+    html += "</table></body></html>";
+    var blob = new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename + ".xls";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  } catch (e) { /* 预览环境不支持下载时静默降级，仅提示导出成功 */ }
+}
+
+/* ============================================================
+   3. 状态
+   ============================================================ */
+var state = {
+  view: "query",
+  queryTab: "list",
+  seq: 0,
+  people: [],   // 鉴赏家（status: active | removed）
+  logs: [],     // 添加操作记录
+  opLogs: [],   // 资格变更日志（移除 / 恢复）
+  opSeq: 0,     // 日志编号（全局自增）
+  addKind: "batch",
+  uploadFile: null,
+  filters: {
+    list:    { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    removed: { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    add:     { method: "全部", from: "", to: "" }
+  }
+};
+var confirmCtx = null;   // 二次确认上下文
+var verifyCtx = null;    // 校验弹窗上下文 { mode, result, method, tag, remarkMap }
+
+/* ---- 筛选：渲染与计数同源 ---- */
+function filterEmpty(f) {
+  return !f.name && !f.uid && !f.openid && !f.from && !f.to && f.level === "全部";
+}
+function matchPerson(r, f) {
+  if (f.name && r.name !== f.name) return false;
+  if (f.uid && r.uid !== f.uid) return false;
+  if (f.openid && r.openid !== f.openid) return false;
+  if (f.from && fmtDate(r.joinTime) < f.from) return false;
+  if (f.to && fmtDate(r.joinTime) > f.to) return false;
+  if (f.level && f.level !== "全部" && r.level !== f.level) return false;
+  return true;
+}
+function matchLog(r, f) {
+  if (f.method && f.method !== "全部" && r.method !== f.method) return false;
+  if (f.from && fmtDate(r.time) < f.from) return false;
+  if (f.to && fmtDate(r.time) > f.to) return false;
+  return true;
+}
+function activePeople() { return state.people.filter(function (r) { return r.status === "active"; }); }
+function removedPeople() { return state.people.filter(function (r) { return r.status === "removed"; }); }
+
+/* ============================================================
+   4. 渲染
+   ============================================================ */
+function renderAll() {
+  renderList();
+  renderRemoved();
+  renderAdd();
+}
+
+/* 4.1 筛选条（按页签拼装；放在表格容器之前，不参与表格重绘） */
+function filterBarHtml(scope) {
+  var f = state.filters[scope];
+  var levelOpts = LEVEL_FILTER.map(function (l) {
+    return '<option value="' + l + '"' + (f.level === l ? " selected" : "") + ">" + l + "</option>";
+  }).join("");
+  return '' +
+    '<div class="filter-item"><label>玩家名称</label>' +
+      '<input class="fb-input" data-f="name" placeholder="请输入鉴赏家名称" value="' + esc(f.name) + '"></div>' +
+    '<div class="filter-item"><label>UID</label>' +
+      '<input class="fb-input" data-f="uid" placeholder="请输入鉴赏家uid" value="' + esc(f.uid) + '"></div>' +
+    '<div class="filter-item"><label>openID</label>' +
+      '<input class="fb-input" data-f="openid" placeholder="请输入鉴赏家openid" value="' + esc(f.openid) + '"></div>' +
+    '<div class="filter-item"><label>添加时间</label>' +
+      '<div class="range-sep"><input type="date" class="fb-input fb-input--date" data-f="from" value="' + esc(f.from) + '">' +
+      '<span>至</span><input type="date" class="fb-input fb-input--date" data-f="to" value="' + esc(f.to) + '"></div></div>' +
+    '<div class="filter-item"><label>鉴赏家等级</label>' +
+      '<select class="fb-select w-auto" data-f="level">' + levelOpts + "</select></div>" +
+    '<div class="filter-actions">' +
+      '<button class="fb-btn" data-act="reset">重置</button></div>';
+}
+function renderFilterBars() {
+  $("#filterBarList").innerHTML = filterBarHtml("list");
+  $("#filterBarRemoved").innerHTML = filterBarHtml("removed");
+}
+
+/* 4.2 Tab1 鉴赏家列表 */
+function personCells(r, isRemoved) {
+  var cells = [
+    esc(r.name),
+    '<span class="mono">' + esc(r.uid) + "</span>",
+    '<span class="mono cell-ellipsis" title="' + esc(r.openid) + '">' + esc(r.openid) + "</span>",
+    methodLabelOf(r.method),
+    esc(r.adder),
+    fmtDateTime(r.joinTime),
+    '<span class="' + lvClass(r.level) + '">' + esc(r.level) + "</span>",
+    esc(r.contentCount),
+    fmtDateTime(r.lastViewTime),
+    r.creator ? '<span class="badge badge--green">' + esc(r.creator) + "</span>" : "",
+    tagBadgeHtml(r.tag)
+  ];
+  if (isRemoved) {
+    cells.push(esc(r.remover || "—"));
+    cells.push(r.removeTime ? fmtDateTime(r.removeTime) : '<span class="cell-sub">—</span>');
+    cells.push(r.removeReason ? '<span class="reason-text">' + esc(r.removeReason) + "</span>" : "");
+  }
+  return cells;
+}
+/* Tab2 第 14 个单元格（0 基）：移除原因，需要允许换行 */
+var REMOVED_REASON_IDX = 13;
+function opCell(r, isRemoved) {
+  var btns = [];
+  if (isRemoved) {
+    btns.push('<button class="fb-btn--text" data-act="restore" data-id="' + r.id + '">恢复资格</button>');
+  } else {
+    btns.push('<button class="fb-btn--text" data-act="edit" data-id="' + r.id + '">编辑</button>');
+    btns.push('<button class="fb-btn--text fb-btn--text-danger" data-act="revoke" data-id="' + r.id + '">移除资格</button>');
+  }
+  return '<td class="col-op">' + btns.join("") + "</td>";
+}
+function renderList() {
+  var f = state.filters.list;
+  var all = activePeople().slice().sort(function (a, b) { return b.joinTime - a.joinTime; }); // 加入时间倒序
+  var rows = all.filter(function (r) { return matchPerson(r, f); });
+  $("#bodyList").innerHTML = rows.map(function (r) {
+    return "<tr>" + personCells(r, false).map(function (c) { return "<td>" + c + "</td>"; }).join("") + opCell(r, false) + "</tr>";
+  }).join("");
+  var hasData = all.length > 0;
+  $("#wrapList").classList.toggle("hidden", !hasData);
+  $("#emptyList").innerHTML = hasData
+    ? (rows.length === 0 ? emptyHtml("没有符合筛选条件的鉴赏家", "试试放宽或重置筛选条件", false) : "")
+    : emptyHtml("暂无鉴赏家", "点击底部「载入演示数据」体验完整流程", true);
+  $("#filterBarList").classList.toggle("hidden", !hasData);
+  $("#countList").textContent = hasData
+    ? (filterEmpty(f) ? "共 " + all.length + " 条" : "筛选出 " + rows.length + " 条 / 共 " + all.length + " 条")
+    : "";
+}
+/* 4.3 Tab2 已移除列表 */
+function renderRemoved() {
+  var f = state.filters.removed;
+  var all = removedPeople().slice().sort(function (a, b) { return (b.removeTime || 0) - (a.removeTime || 0); });
+  var rows = all.filter(function (r) { return matchPerson(r, f); });
+  $("#bodyRemoved").innerHTML = rows.map(function (r) {
+    return "<tr>" + personCells(r, true).map(function (c, i) {
+      return "<td" + (i === REMOVED_REASON_IDX ? ' class="cell-wrap"' : "") + ">" + c + "</td>";
+    }).join("") + opCell(r, true) + "</tr>";
+  }).join("");
+  var hasData = all.length > 0;
+  $("#wrapRemoved").classList.toggle("hidden", !hasData);
+  $("#emptyRemoved").innerHTML = hasData
+    ? (rows.length === 0 ? emptyHtml("没有符合筛选条件的鉴赏家", "试试放宽或重置筛选条件", false) : "")
+    : emptyHtml("暂无已移除的鉴赏家", "在「鉴赏家列表」中移除资格后，记录会进入这里", true);
+  $("#filterBarRemoved").classList.toggle("hidden", !hasData);
+  $("#countRemoved").textContent = hasData
+    ? (filterEmpty(f) ? "共 " + all.length + " 条" : "筛选出 " + rows.length + " 条 / 共 " + all.length + " 条")
+    : "";
+}
+/* 4.3.1 资格变更日志（移除 / 恢复） */
+function addOpLog(rec) {
+  state.opLogs.push({
+    no: ++state.opSeq,
+    playerId: rec.playerId,
+    name: rec.name,
+    uid: rec.uid,
+    action: rec.action,            // "remove" | "restore"
+    operator: rec.operator,
+    time: rec.time || Date.now()
+  });
+}
+function opLogsSorted() {
+  return state.opLogs.slice().sort(function (a, b) {
+    return b.time - a.time || b.no - a.no;   // 时间倒序，同刻按编号倒序兜底
+  });
+}
+function renderOpLogs() {
+  var rows = opLogsSorted();
+  $("#bodyOpLog").innerHTML = rows.map(function (r) {
+    return "<tr>" +
+      '<td class="mono">' + r.no + "</td>" +
+      "<td>" + esc(r.name) + "</td>" +
+      '<td><span class="mono">' + esc(r.uid) + "</span></td>" +
+      "<td>" + (r.action === "remove"
+        ? '<span class="badge badge--red">移除</span>'
+        : '<span class="badge badge--green">恢复</span>') + "</td>" +
+      "<td>" + esc(r.operator) + "</td>" +
+      "<td>" + fmtDateTime(r.time) + "</td>" +
+      "</tr>";
+  }).join("");
+  var hasData = rows.length > 0;
+  $("#emptyOpLog").innerHTML = hasData ? "" : emptyHtml("暂无操作日志", "移除或恢复鉴赏家资格后会在这里留痕", false);
+  $("#emptyOpLog").classList.toggle("hidden", hasData);
+}
+function openOpLog() {
+  renderOpLogs();
+  $("#maskLog").classList.remove("hidden");
+}
+function closeOpLog() { $("#maskLog").classList.add("hidden"); }
+
+/* 4.4 页B 操作记录 */
+function renderAdd() {
+  var f = state.filters.add;
+  var all = state.logs.slice().sort(function (a, b) { return b.time - a.time; });
+  var rows = all.filter(function (r) { return matchLog(r, f); });
+  $("#bodyAdd").innerHTML = rows.map(function (r) {
+    return "<tr>" +
+      "<td>" + methodLabelOf(r.method) + "</td>" +
+      "<td>" + r.total + "</td>" +
+      "<td><span class=\"badge badge--green\">" + r.success + "</span></td>" +
+      "<td>" + (r.fail ? '<span class="badge badge--orange">' + r.fail + "</span>" : '<span class="cell-sub">0</span>') + "</td>" +
+      "<td>" + fmtDateTime(r.time) + "</td>" +
+      "<td>" + esc(r.operator) + "</td>" +
+      '<td class="col-op"><button class="fb-btn--text" data-act="detail" data-id="' + r.id + '">查看详情</button></td>' +
+      "</tr>";
+  }).join("");
+  var hasData = all.length > 0;
+  $("#wrapAdd").classList.toggle("hidden", !hasData);
+  $("#emptyAdd").innerHTML = hasData
+    ? (rows.length === 0 ? emptyHtml("没有符合筛选条件的记录", "试试放宽或重置筛选条件", false) : "")
+    : emptyHtml("暂无添加记录", "点击右上角「添加鉴赏家」或底部「载入演示数据」", true);
+  $("#filterBarAdd").classList.toggle("hidden", !hasData);
+  var noFilter = f.method === "全部" && !f.from && !f.to;
+  $("#countAdd").textContent = hasData
+    ? (noFilter ? "共 " + all.length + " 条" : "筛选出 " + rows.length + " 条 / 共 " + all.length + " 条")
+    : "";
+}
+
+/* 4.5 页签 / 页面切换 */
+function switchView(name) {
+  var to = (name === "add") ? "add" : "query";
+  state.view = to;
+  $("#viewQuery").classList.toggle("hidden", to !== "query");
+  $("#viewAdd").classList.toggle("hidden", to !== "add");
+  $("#navQuery").classList.toggle("is-on", to === "query");
+  $("#navAdd").classList.toggle("is-on", to === "add");
+}
+function switchQueryTab(name) {
+  var to = (name === "removed") ? "removed" : "list";
+  state.queryTab = to;
+  $$("#queryTabs .fb-tabs__item").forEach(function (el) {
+    el.classList.toggle("is-on", el.getAttribute("data-tab") === to);
+  });
+  $("#regionList").classList.toggle("hidden", to !== "list");
+  $("#regionRemoved").classList.toggle("hidden", to !== "removed");
+}
+
+/* ============================================================
+   5. 弹窗：二次确认
+   ============================================================ */
+function openConfirm(opt) {
+  confirmCtx = opt;
+  $("#confirmTitle").textContent = opt.title || "操作确认";
+  $("#confirmMsg").innerHTML = opt.msg || "";
+  // 可选下挂内容（如「移除原因」输入框）；不传则完全隐藏，避免上一次的输入残留
+  var extra = $("#confirmExtra");
+  extra.innerHTML = opt.extra || "";
+  extra.classList.toggle("hidden", !opt.extra);
+  var ok = $("#confirmOk");
+  ok.textContent = opt.okText || "确认";
+  ok.className = "fb-btn " + (opt.danger ? "fb-btn--danger" : "fb-btn--primary");
+  $("#maskConfirm").classList.remove("hidden");
+}
+function closeConfirm() { $("#maskConfirm").classList.add("hidden"); confirmCtx = null; }
+
+/* ============================================================
+   6. 行操作
+   ============================================================ */
+function revokeQualification(id) {
+  var r = state.people.find(function (x) { return x.id === id; });
+  if (!r || r.status !== "active") return;
+  // 身份标签：只在已标记时带出当前值（警示色强调）；未标记则不展示该行
+  var tagLine = r.tag
+    ? '<b style="color:var(--warning);">该玩家当前身份标签：' + esc(r.tag) + "</b><br>"
+    : "";
+  var msg = "是否需要移除该玩家的鉴赏家资格？<br>" + tagLine +
+    "<span style=\"color:var(--text-3);font-size:12px;\">移除后该玩家将移入「已移除的鉴赏家列表」，并进入 " +
+    COOLDOWN_DAYS + " 天冷静期，期间不可申诉。</span>";
+  var extra =
+    '<div class="field" style="margin:2px 0 0;">' +
+      '<label>移除原因（选填）</label>' +
+      '<textarea class="fb-textarea fb-textarea--sm" id="confirmReason" maxlength="50" ' +
+        'placeholder="请输入移除原因，最多 50 字"></textarea>' +
+      '<div class="reason-count"><span id="reasonCount">0</span>/50</div>' +
+    "</div>";
+  openConfirm({
+    title: "移除资格确认", msg: msg, extra: extra, okText: "确认", danger: true,
+    onOk: function () {
+      r.status = "removed";
+      r.remover = OPERATOR;
+      r.removeTime = Date.now();
+      r.removeReason = $("#confirmReason").value.trim();
+      addOpLog({ playerId: r.id, name: r.name, uid: r.uid, action: "remove", operator: OPERATOR });
+      closeConfirm();
+      renderAll();
+      toast("移除成功", "success");
+    }
+  });
+}
+/* ============================================================
+   6.1 编辑鉴赏家（只读展示 + 身份标签 / 备注可改）
+   ============================================================ */
+var editId = null;
+function openEdit(id) {
+  var r = state.people.find(function (x) { return x.id === id; });
+  if (!r) return;
+  editId = id;
+  $("#editName").value = r.name;
+  $("#editUid").value = r.uid;
+  $("#editOpenid").value = r.openid;
+  $("#editMethod").value = methodLabelOf(r.method);
+  $("#editAdder").value = r.adder;
+  $("#editJoin").value = fmtDateTime(r.joinTime);
+  $("#editLevel").value = r.level;
+  $("#editCount").value = r.contentCount;
+  $("#editLastView").value = fmtDateTime(r.lastViewTime);
+  $("#editCreator").value = r.creator || "";
+  $("#editTag").innerHTML = tagOptionsHtml(r.tag || "");
+  $("#editRemark").value = r.remark || "";
+  $("#maskEdit").classList.remove("hidden");
+}
+function closeEdit() { $("#maskEdit").classList.add("hidden"); editId = null; }
+function saveEdit() {
+  var r = state.people.find(function (x) { return x.id === editId; });
+  if (!r) { closeEdit(); return; }
+  r.tag = $("#editTag").value;
+  r.remark = $("#editRemark").value.trim();
+  closeEdit();
+  renderAll();
+  toast("保存成功", "success");
+}
+
+function restoreQualification(id) {
+  var r = state.people.find(function (x) { return x.id === id; });
+  if (!r || r.status !== "removed") return;
+  openConfirm({
+    title: "恢复资格确认",
+    msg: "是否确认恢复该玩家的鉴赏家资格？" +
+      "<br><span style=\"color:var(--text-3);font-size:12px;\">恢复后该玩家将移回「鉴赏家列表」，冷却期计时器归零" +
+      (r.tag ? "；其身份标签（" + esc(r.tag) + "）保持不变。" : "。") + "</span>",
+    okText: "确认",
+    onOk: function () {
+      r.status = "active";
+      r.remover = "";
+      r.removeTime = null;
+      r.removeReason = "";
+      r.rejoinAt = Date.now();
+      addOpLog({ playerId: r.id, name: r.name, uid: r.uid, action: "restore", operator: OPERATOR });
+      closeConfirm();
+      renderAll();
+      toast("恢复成功", "success");
+    }
+  });
+}
+
+/* ============================================================
+   7. 添加鉴赏家 + 校验
+   ============================================================ */
+function openAddModal() {
+  $("#addSelect").value = "batch";   // 默认「添加鉴赏家uid」
+  switchAddKind("batch");            // 复用：切面板 + 清空内容 + 重算按钮
+  $("#maskAdd").classList.remove("hidden");
+}
+function closeAddModal() { $("#maskAdd").classList.add("hidden"); }
+
+/* 切换添加方式：不保留之前填写 / 选择的任何内容（含身份标签），
+   提交时只处理当前选中方式对应的内容 */
+function switchAddKind(kind) {
+  state.addKind = kind;
+  $("#inputUids").value = "";
+  $("#fileInput").value = "";
+  state.uploadFile = null;
+  renderUploadBox();
+  $("#addTag").value = "";
+  $("#paneBatch").classList.toggle("hidden", kind !== "batch");
+  $("#paneUpload").classList.toggle("hidden", kind !== "upload");
+  syncAddSubmit();
+}
+function syncAddSubmit() {
+  var ok;
+  if (state.addKind === "batch") ok = $("#inputUids").value.trim().length > 0;
+  else ok = !!state.uploadFile;
+  $("#addSubmit").disabled = !ok;
+}
+function renderUploadBox() {
+  var box = $("#uploadBox");
+  if (state.uploadFile) {
+    box.innerHTML = '<div class="upload__file"><span class="upload__name">' +
+      esc(state.uploadFile.name) + '</span><button class="fb-btn" id="btnReselect">重新选择</button></div>';
+  } else {
+    box.innerHTML = '<span class="upload__text">点击上传或拖拽文件到这里</span>';
+  }
+}
+function pickFile(file) {
+  if (!file) return;
+  if (!/\.(xls|xlsx)$/i.test(file.name)) { toast("仅支持 .xls.xlsx 格式", "danger"); return; }
+  state.uploadFile = { name: file.name };
+  renderUploadBox();
+  syncAddSubmit();
+}
+/* 提交前的纯函数：校验一批 uid，返回 { total, passed, failures, warnings } */
+function verifyUids(rawUids) {
+  var seen = {};
+  var passed = [], failures = [], warnings = [];
+  rawUids.forEach(function (u) {
+    if (!/^[0-9]{5,}$/.test(u)) { failures.push({ uid: u, reason: FAIL_REASON.notFound }); return; }
+    if (seen[u]) { failures.push({ uid: u, reason: FAIL_REASON.duplicate }); return; }
+    seen[u] = true;
+    var isActive = state.people.some(function (p) { return p.uid === u && p.status === "active"; });
+    if (isActive) { failures.push({ uid: u, reason: FAIL_REASON.already }); return; }
+    var isRemoved = state.people.some(function (p) { return p.uid === u && p.status === "removed"; });
+    if (isRemoved) warnings.push(u);
+    passed.push(u);
+  });
+  return { total: rawUids.length, passed: passed, failures: failures, warnings: warnings };
+}
+/* 纯函数：把每行文本解析成 { uid, remark } —— 第一个空格前是 uid，其后整段为备注（可为空） */
+function parseUidLines(lines) {
+  return lines.map(function (s) {
+    var m = /^(\S+)\s*(.*)$/.exec(s);
+    return { uid: m[1], remark: (m[2] || "").trim() };
+  });
+}
+function submitAdd() {
+  var result, method = state.addKind === "upload" ? "upload" : "add";
+  var remarkMap = {};
+  if (state.addKind === "batch") {
+    var lines = $("#inputUids").value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (lines.length > MAX_BATCH) lines = lines.slice(0, MAX_BATCH);
+    var items = parseUidLines(lines);
+    items.forEach(function (it) { remarkMap[it.uid] = it.remark; });
+    result = verifyUids(items.map(function (it) { return it.uid; }));
+  } else {
+    // 上传 excel（第一列 uid、第二列备注）：demo 不解析文件内容，模板为空 → 校验 0 条
+    result = verifyUids([]);
+  }
+  closeAddModal();
+  openVerify({ mode: "submit", result: result, method: method, tag: $("#addTag").value, remarkMap: remarkMap });
+}
+function openVerify(ctx) {
+  verifyCtx = ctx;
+  var r = ctx.result;
+  var n = r.passed.length, m = r.failures.length, x = r.total;
+  var isDetail = ctx.mode === "detail";
+  // 「添加方式」只读回显：仅查看详情场景展示，下拉置灰；提交校验场景不展示
+  $("#verifyMethodWrap").classList.toggle("hidden", !isDetail);
+  if (isDetail) $("#verifyMethod").value = ctx.method === "upload" ? "upload" : "batch";
+  $("#verifyTitle").textContent = "校验结果";
+  $("#verifyStat").innerHTML = "本次涉及添加 <b>" + x + "</b> 个鉴赏家，已成功给其中 <b>" + n +
+    "</b> 个 uid 开通鉴赏家资格，校验不通过 <b class=\"bad\">" + m + "</b> 条数据，添加失败。" +
+    "<b style=\"white-space:nowrap\">" + x + " = " + n + " + " + m + "</b>";
+  // 冷静期提示
+  if (r.warnings.length) {
+    $("#verifyWarn").classList.remove("hidden");
+    $("#verifyWarnText").innerHTML = "以下 uid 处于冷静期（" + COOLDOWN_DAYS + " 天内被移除资格），重新添加将<b>重置其冷却期计时器</b>：" +
+      r.warnings.map(function (u) { return '<span class="mono">' + esc(u) + "</span>"; }).join("、");
+  } else {
+    $("#verifyWarn").classList.add("hidden");
+  }
+  // 失败列表
+  if (m > 0) {
+    $("#verifyFailWrap").classList.remove("hidden");
+    $("#verifyFailBody").innerHTML = r.failures.map(function (f) {
+      return '<tr><td class="mono">' + esc(f.uid) + "</td><td>" + esc(f.reason) + "</td></tr>";
+    }).join("");
+  } else {
+    $("#verifyFailWrap").classList.add("hidden");
+    $("#verifyFailBody").innerHTML = "";
+  }
+  $("#verifyNote").classList.toggle("hidden", !(ctx.mode === "detail"));
+  $("#verifyNote").textContent = ctx.mode === "detail" ? "以上为历史校验结果快照，仅供查看。" : "";
+  $("#verifyExport").classList.toggle("hidden", m === 0);
+  $("#verifyOk").textContent = ctx.mode === "detail" ? "关闭" : "确认";
+  $("#maskVerify").classList.remove("hidden");
+}
+function closeVerify() { $("#maskVerify").classList.add("hidden"); verifyCtx = null; }
+function confirmVerify() {
+  var ctx = verifyCtx;
+  if (!ctx) return;
+  if (ctx.mode === "submit") {
+    var r = ctx.result;
+    // 落地：通过的 uid 写入鉴赏家列表（冷静期玩家则移回并重置冷却）
+    r.passed.forEach(function (u) {
+      var existed = state.people.find(function (p) { return p.uid === u && p.status === "removed"; });
+      var rm = (ctx.remarkMap && ctx.remarkMap[u]) || "";
+      if (existed) {
+        existed.status = "active"; existed.remover = ""; existed.removeTime = null;
+        existed.removeReason = ""; existed.rejoinAt = Date.now();
+        existed.tag = ctx.tag || "";
+        if (rm) existed.remark = rm;   // 未填备注时保留原有备注
+      } else {
+        state.people.push({
+          id: ++state.seq, name: "玩家" + u.slice(-4), uid: u, openid: "oP" + u + "demo",
+          method: ctx.method, adder: OPERATOR, joinTime: Date.now(),
+          level: "Lv1", contentCount: 0, lastViewTime: Date.now(),
+          creator: "", tag: ctx.tag || "", remark: rm, status: "active", remover: "", removeTime: null
+        });
+      }
+    });
+    state.logs.unshift({
+      id: ++state.seq, method: ctx.method, total: r.total, success: r.passed.length, fail: r.failures.length,
+      time: Date.now(), operator: OPERATOR,
+      detail: { total: r.total, passed: r.passed.slice(), failures: r.failures.slice(), warnings: r.warnings.slice() }
+    });
+    closeVerify();
+    renderAll();
+    if (r.passed.length > 0) switchView("query");   // 添加成功后回到名单，看到新记录
+    toast("添加成功，已导入 " + r.passed.length + " 个鉴赏家", "success");
+  } else {
+    closeVerify();
+  }
+}
+function openLogDetail(id) {
+  var log = state.logs.find(function (x) { return x.id === id; });
+  if (!log || !log.detail) return;
+  openVerify({ mode: "detail", result: log.detail, method: log.method, tag: "", remarkMap: {} });
+}
+function exportFailList() {
+  var ctx = verifyCtx;
+  if (!ctx || !ctx.result.failures.length) return;
+  downloadExcel("校验失败清单_" + fileStamp(), ["uid", "不通过原因"],
+    ctx.result.failures.map(function (f) { return [f.uid, f.reason]; }));
+  toast("失败清单已导出", "success");
+}
+
+/* ============================================================
+   8. 导出列表
+   ============================================================ */
+function exportPeople(isRemoved) {
+  var scope = isRemoved ? "removed" : "list";
+  var f = state.filters[scope];
+  var rows = (isRemoved ? removedPeople() : activePeople())
+    .filter(function (r) { return matchPerson(r, f); })
+    .sort(function (a, b) { return isRemoved ? (b.removeTime || 0) - (a.removeTime || 0) : b.joinTime - a.joinTime; });
+  var headers = ["玩家名称", "uid", "openid", "添加方式", "添加人", "加入时间", "鉴赏家等级", "鉴赏内容数量", "最近鉴赏时间", "是否是创作者", "身份标签"];
+  if (isRemoved) headers = headers.concat(["移除操作人", "移除操作日期", "移除原因"]);
+  var body = rows.map(function (r) {
+    var row = [r.name, r.uid, r.openid, methodLabelOf(r.method, "list"), r.adder, fmtDateTime(r.joinTime),
+      r.level, r.contentCount, fmtDateTime(r.lastViewTime), r.creator || "", r.tag || ""];
+    if (isRemoved) row = row.concat([r.remover || "", r.removeTime ? fmtDateTime(r.removeTime) : "", r.removeReason || ""]);
+    return row;
+  });
+  var name = (isRemoved ? "被移出的鉴赏家名单_" : "鉴赏家名单_") + fileStamp();
+  downloadExcel(name, headers, body);
+  toast("已导出 " + rows.length + " 条", "success");
+}
+function exportAdd() {
+  var f = state.filters.add;
+  var rows = state.logs.filter(function (r) { return matchLog(r, f); })
+    .sort(function (a, b) { return b.time - a.time; });
+  downloadExcel("鉴赏家添加记录_" + fileStamp(),
+    ["添加方式", "添加数量", "添加成功数量", "添加失败数量", "添加时间", "添加人"],
+    rows.map(function (r) { return [methodLabelOf(r.method), r.total, r.success, r.fail, fmtDateTime(r.time), r.operator]; }));
+  toast("已导出 " + rows.length + " 条", "success");
+}
+
+/* ============================================================
+   9. 演示数据
+   ============================================================ */
+/* 演示用：按「总数/成功/失败」伪造一份自洽的校验详情快照（success + fail == total） */
+function demoDetail(total, success, fail) {
+  var passed = [], failures = [], i;
+  var reasons = [FAIL_REASON.notFound, FAIL_REASON.duplicate, FAIL_REASON.already];
+  for (i = 0; i < success; i++) passed.push(String(91000000 + (i * 137) % 8999999));
+  for (i = 0; i < fail; i++) failures.push({ uid: String(20000000 + (i * 911) % 7999999), reason: reasons[i % 3] });
+  return { total: total, passed: passed, failures: failures, warnings: [] };
+}
+function buildDemo() {
+  var A = [   // [name, uid, openid, method, adder, joinTime, level, count, lastView, creator, tag, remark]
+    ["夜色如墨", "83642157", "oPn8Xa2KeQ7fZ1mD", "add",    "李小明", "2026-07-02T10:24:00", "Lv4", 128, "2026-10-11T21:03:00", "Lv3", "",         ""],
+    ["孤岛鲸歌", "79135024", "oPq3Rb9TyU2wE5nB", "upload", "王芳",   "2026-07-15T14:08:00", "Lv3", 76,  "2026-10-12T09:30:00", "",    "内部成员", "内测一期种子用户"],
+    ["长安不夜", "65820147", "oPk7Lm4GdS6xH0vC", "add",    "李小明", "2026-07-21T09:12:00", "Lv5", 265, "2026-10-12T20:11:00", "Lv4", "重要用户", "外部签约创作者"],
+    ["半盏清欢", "90467213", "oPa1Bc8FhJ3rT9mE", "add",    "张伟",   "2026-08-01T16:45:00", "Lv2", 34,  "2026-10-09T18:22:00", "",    "",         ""],
+    ["北纬三十", "71205386", "oPd4Ef2KlM8qS1nF", "upload", "王芳",   "2026-08-06T11:30:00", "Lv3", 91,  "2026-10-10T12:05:00", "Lv2", "",         "渠道合作方推荐"],
+    ["雾里看花", "58912407", "oPg9Hj6NbV7cU3pG", "add",    "李小明", "2026-08-09T20:18:00", "Lv1", 12,  "2026-10-08T15:47:00", "",    "",         ""],
+    ["且听风吟", "67430251", "oPm2Kd1QwX5zY8rH", "add",    "张伟",   "2026-08-14T08:55:00", "Lv4", 154, "2026-10-12T22:40:00", "Lv3", "内部成员", ""],
+    ["南山乔木", "82310576", "oPt6Nr9TgB4dV2sJ", "upload", "王芳",   "2026-08-18T13:26:00", "Lv2", 47,  "2026-10-07T10:19:00", "",    "",         ""],
+    ["云深不知", "74162805", "oPw8Ps3UhK9mX5tK", "add",    "李小明", "2026-08-23T19:04:00", "Lv3", 88,  "2026-10-11T16:33:00", "",    "",         ""],
+    ["一苇以航", "69023714", "oPz2Qv7WjN6bY1uL", "add",    "张伟",   "2026-08-27T10:41:00", "Lv5", 301, "2026-10-12T19:58:00", "Lv5", "重要用户", "年度盛典特邀"],
+    ["江上月白", "80576412", "oPc5Rt1XlM3gD8vM", "upload", "王芳",   "2026-09-01T15:52:00", "Lv1", 9,   "2026-09-28T20:12:00", "",    "",         ""],
+    ["疏影横斜", "63745820", "oPf7Uy4ZnQ2hS6wN", "add",    "李小明", "2026-09-04T09:37:00", "Lv3", 112, "2026-10-10T14:26:00", "Lv2", "",         ""],
+    ["沧浪之水", "75238691", "oPj9Vb8CmT5kF3xP", "add",    "张伟",   "2026-09-08T18:15:00", "Lv2", 55,  "2026-10-06T11:48:00", "",    "",         ""],
+    ["铁马冰河", "91047235", "oPm1Wn6DvB8lG4yQ", "upload", "王芳",   "2026-09-11T12:09:00", "Lv4", 173, "2026-10-12T17:02:00", "Lv4", "内部成员", "赛事合作方指派"],
+    ["大梦一场", "58306417", "oPq3Xp9EwC2mH5zR", "add",    "李小明", "2026-09-15T21:44:00", "Lv1", 21,  "2026-09-30T19:37:00", "",    "",         ""],
+    ["拾光者",   "72641508", "oPt5Yr1FxD7nJ6aS", "add",    "张伟",   "2026-09-18T07:58:00", "Lv3", 96,  "2026-10-11T08:14:00", "",    "",         ""],
+    ["银河修理员", "86420351", "oPw7Zs4GyE3pK8bT", "upload", "王芳", "2026-09-22T16:31:00", "Lv2", 63,  "2026-10-09T21:55:00", "Lv2", "",         ""],
+    ["春风十里", "64578903", "oPz1At6HzF9qL2cU", "add",    "李小明", "2026-09-25T11:12:00", "Lv5", 238, "2026-10-12T13:29:00", "Lv5", "重要用户", "外部签约创作者"],
+    ["城南旧事", "79852146", "oPc3Bu8JaG5rM4dV", "add",    "张伟",   "2026-09-28T19:36:00", "Lv1", 15,  "2026-10-05T17:41:00", "",    "",         ""],
+    ["折枝成诗", "70316485", "oPf5Cv1KbH7sN6eW", "upload", "王芳",   "2026-10-01T10:05:00", "Lv3", 84,  "2026-10-11T19:16:00", "",    "",         ""],
+    ["山海不可平", "83691720", "oPj7Dw3LcJ9tP8fX", "add",  "李小明", "2026-10-03T14:48:00", "Lv4", 147, "2026-10-12T21:20:00", "Lv3", "",         ""],
+    ["风起时",   "67904258", "oPm9Ex5MdK2uQ1gY", "add",    "张伟",   "2026-10-05T09:23:00", "Lv2", 42,  "2026-10-08T12:34:00", "",    "",         ""],
+    ["灯下故人", "81427036", "oPq1Fy7NeL4vR3hZ", "upload", "王芳",   "2026-10-07T18:57:00", "Lv1", 7,   "2026-10-10T09:03:00", "",    "",         ""],
+    ["众生皆苦", "75093821", "oPt3Gz9PfM6wS5iA", "add",    "李小明", "2026-10-09T13:19:00", "Lv3", 109, "2026-10-12T18:47:00", "Lv2", "",         ""]
+  ];
+  var R = [   // 已移除：[name, uid, openid, method, adder, joinTime, level, count, lastView, creator, tag, remark, remover, removeTime, removeReason]
+    ["旧日回响", "65120033", "oPu5Hb2QgN8xT7jB", "add",    "李小明", "2026-06-11T10:20:00", "Lv2", 38, "2026-07-28T16:12:00", "",    "",         "",                 "王芳",   "2026-08-05T11:40:00", "多次发布与鉴赏无关的内容"],
+    ["旧时月色", "73918406", "oPx7Ic4RhP1yU9kC", "upload", "王芳",   "2026-06-19T15:33:00", "Lv3", 71, "2026-08-12T20:25:00", "",    "重要用户", "外部签约创作者",   "李小明", "2026-08-20T09:18:00", "账号存在异常登录风险，暂停资格"],
+    ["南风知意", "80631572", "oPa9Jd6SiQ3zV2lD", "add",    "张伟",   "2026-06-27T09:07:00", "Lv1", 19, "2026-08-01T13:44:00", "",    "",         "",                 "王芳",   "2026-09-02T14:52:00", "鉴赏内容连续 3 个月未更新"],
+    ["踏雪寻梅", "67142085", "oPd1Ke8TjR5aW4mE", "add",    "李小明", "2026-07-08T18:41:00", "Lv4", 132,"2026-09-05T11:30:00", "Lv3", "内部成员", "",                 "李小明", "2026-09-15T17:26:00", "经核实存在刷量行为"],
+    ["云中谁寄", "79504813", "oPg3Lf1UkS7bX6nF", "upload", "王芳",   "2026-07-16T12:55:00", "Lv2", 49, "2026-08-30T19:08:00", "",    "",         "",                 "张伟",   "2026-09-24T10:39:00", "本人申请退出鉴赏家计划"],
+    ["古木无人", "62837140", "oPj5Mg3VlT9cY8oG", "add",    "张伟",   "2026-07-24T20:22:00", "Lv3", 90, "2026-09-18T15:55:00", "",    "",         "",                 "王芳",   "2026-10-02T09:07:00", "账号已转让，资格随账号失效"],
+    ["疏钟晚照", "84261509", "oPm7Nh5WmU2dZ1pH", "add",    "李小明", "2026-08-03T11:14:00", "Lv1", 23, "2026-09-26T18:33:00", "",    "",         "",                 "李小明", "2026-10-06T16:21:00", "多次未按要求参与鉴赏活动"],
+    ["野渡无人", "76012934", "oPq9Pi7XnV4eA3qI", "upload", "王芳",   "2026-08-12T16:38:00", "Lv5", 214,"2026-10-01T21:47:00", "Lv4", "重要用户", "年度盛典特邀",     "张伟",   "2026-10-09T12:58:00", "违规使用第三方工具，资格取消"]
+  ];
+  state.people = [];
+  A.forEach(function (t) {
+    state.people.push({ id: ++state.seq, name: t[0], uid: t[1], openid: t[2], method: t[3], adder: t[4],
+      joinTime: toStringTs(t[5]), level: t[6], contentCount: t[7], lastViewTime: toStringTs(t[8]),
+      creator: t[9], tag: t[10], remark: t[11] || "", status: "active", remover: "", removeTime: null });
+  });
+  R.forEach(function (t) {
+    state.people.push({ id: ++state.seq, name: t[0], uid: t[1], openid: t[2], method: t[3], adder: t[4],
+      joinTime: toStringTs(t[5]), level: t[6], contentCount: t[7], lastViewTime: toStringTs(t[8]),
+      creator: t[9], tag: t[10], remark: t[11] || "", status: "removed", remover: t[12],
+      removeTime: toStringTs(t[13]), removeReason: t[14] || "" });
+  });
+  // 操作记录（自洽：success + fail == total）
+  var L = [
+    ["add",    12, 10, 2, "2026-09-28T10:12:00", "李小明"],
+    ["upload", 40, 37, 3, "2026-10-02T15:30:00", "王芳"],
+    ["add",    6,  6,  0, "2026-10-06T09:45:00", "张伟"],
+    ["upload", 88, 80, 8, "2026-10-09T14:20:00", "王芳"],
+    ["add",    25, 22, 3, "2026-10-11T11:08:00", "李小明"],
+    ["upload", 15, 15, 0, "2026-10-12T17:52:00", "张伟"]
+  ];
+  state.logs = L.map(function (t) {
+    return { id: ++state.seq, method: t[0], total: t[1], success: t[2], fail: t[3],
+      time: toStringTs(t[4]), operator: t[5], detail: demoDetail(t[1], t[2], t[3]) };
+  });
+
+  // 资格变更日志：8 条来自 R 的移除 + 3 组「移除 → 恢复」（对应当前在册玩家）
+  // 按时间升序写入，保证「编号」随操作时间递增；展示时再倒序
+  state.opLogs = [];
+  state.opSeq = 0;
+  var OP = [];
+  R.forEach(function (t) { OP.push([t[0], t[1], "remove", t[12], t[13]]); });
+  var OPR = [   // 与 R 互补的「移除 → 恢复」历史（对象为当前在册玩家）
+    ["夜色如墨", "83642157", "remove",  "张伟",   "2026-08-10T15:22:00"],
+    ["夜色如墨", "83642157", "restore", "李小明", "2026-08-28T10:06:00"],
+    ["长安不夜", "65820147", "remove",  "王芳",   "2026-09-02T19:41:00"],
+    ["长安不夜", "65820147", "restore", "李小明", "2026-09-19T14:33:00"],
+    ["春风十里", "64578903", "remove",  "张伟",   "2026-10-01T09:18:00"],
+    ["春风十里", "64578903", "restore", "王芳",   "2026-10-12T16:07:00"]
+  ];
+  OPR.forEach(function (t) { OP.push(t); });
+  OP.sort(function (a, b) { return toStringTs(a[4]) - toStringTs(b[4]); })
+    .forEach(function (t) {
+      addOpLog({ name: t[0], uid: t[1], action: t[2], operator: t[3],
+        time: toStringTs(t[4]), playerId: null });
+    });
+  state.filters = {
+    list:    { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    removed: { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    add:     { method: "全部", from: "", to: "" }
+  };
+  renderFilterBars();
+  renderAll();
+  toast("已载入演示数据：" + A.length + " 位鉴赏家 · " + R.length + " 位已移除 · " + L.length + " 条添加记录", "success");
+}
+function clearDemo() {
+  state.people = []; state.logs = []; state.opLogs = []; state.opSeq = 0;
+  state.filters = {
+    list:    { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    removed: { name: "", uid: "", openid: "", from: "", to: "", level: "全部" },
+    add:     { method: "全部", from: "", to: "" }
+  };
+  renderFilterBars();
+  renderAll();
+  toast("已清空");
+}
+
+/* ============================================================
+   10. 事件与初始化
+   ============================================================ */
+function bindFilterBar(barEl, scope, onChange) {
+  barEl.addEventListener("input", function (e) {
+    var t = e.target; var key = t.getAttribute("data-f");
+    if (!key) return;
+    var f = state.filters[scope]; f[key] = t.value;
+    onChange();
+  });
+  barEl.addEventListener("change", function (e) {
+    var t = e.target; var key = t.getAttribute("data-f");
+    if (!key) return;
+    var f = state.filters[scope]; f[key] = t.value;
+    onChange();
+  });
+  barEl.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]");
+    if (!t) return;
+    if (t.getAttribute("data-act") === "reset") {
+      var fresh = { name: "", uid: "", openid: "", from: "", to: "", level: "全部" };
+      state.filters[scope] = fresh;
+      renderFilterBars();
+      onChange();
+    }
+  });
+}
+function init() {
+  renderFilterBars();
+  renderAll();
+
+  // 顶部导航 / 页内 Tab
+  $("#appNav").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-view]"); if (!t) return;
+    switchView(t.getAttribute("data-view"));
+  });
+  $("#queryTabs").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-tab]"); if (!t) return;
+    switchQueryTab(t.getAttribute("data-tab"));
+  });
+
+  // 筛选条
+  bindFilterBar($("#filterBarList"), "list", renderList);
+  bindFilterBar($("#filterBarRemoved"), "removed", renderRemoved);
+  bindFilterBar($("#filterBarAdd"), "add", renderAdd);
+
+  // 列表行操作（事件委托）
+  $("#tableList").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]"); if (!t) return;
+    var id = Number(t.getAttribute("data-id"));
+    var act = t.getAttribute("data-act");
+    if (act === "revoke") revokeQualification(id);
+    else if (act === "edit") openEdit(id);
+  });
+  $("#tableRemoved").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]"); if (!t) return;
+    if (t.getAttribute("data-act") === "restore") restoreQualification(Number(t.getAttribute("data-id")));
+  });
+  $("#tableAdd").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]"); if (!t) return;
+    if (t.getAttribute("data-act") === "detail") openLogDetail(Number(t.getAttribute("data-id")));
+  });
+
+  // 导出
+  $("#btnExportList").addEventListener("click", function () { exportPeople(false); });
+  $("#btnExportRemoved").addEventListener("click", function () { exportPeople(true); });
+  $("#btnExportAdd").addEventListener("click", exportAdd);
+
+  // 操作日志
+  $("#btnOpLog").addEventListener("click", openOpLog);
+  $("#opLogClose").addEventListener("click", closeOpLog);
+
+  // 二次确认
+  $("#confirmCancel").addEventListener("click", closeConfirm);
+  $("#confirmOk").addEventListener("click", function () {
+    if (confirmCtx && confirmCtx.onOk) confirmCtx.onOk();
+  });
+  // 移除原因字数计数
+  $("#maskConfirm").addEventListener("input", function (e) {
+    if (e.target && e.target.id === "confirmReason") {
+      var t = $("#reasonCount");
+      if (t) t.textContent = String(e.target.value.length);
+    }
+  });
+
+  // 添加弹窗
+  $("#btnOpenAdd").addEventListener("click", openAddModal);
+  $("#addCancel").addEventListener("click", closeAddModal);
+  $("#addSelect").addEventListener("change", function (e) {
+    switchAddKind(e.target.value);
+  });
+  $("#inputUids").addEventListener("input", syncAddSubmit);
+  $("#addSubmit").addEventListener("click", submitAdd);
+  // 编辑弹窗
+  $("#editCancel").addEventListener("click", closeEdit);
+  $("#editSave").addEventListener("click", saveEdit);
+  $("#uploadBox").addEventListener("click", function (e) {
+    if (e.target.closest("#btnReselect")) { e.stopPropagation(); $("#fileInput").click(); return; }
+    if (state.uploadFile) return;
+    $("#fileInput").click();
+  });
+  $("#fileInput").addEventListener("change", function (e) { pickFile(e.target.files && e.target.files[0]); });
+  $("#uploadBox").addEventListener("dragover", function (e) { e.preventDefault(); });
+  $("#uploadBox").addEventListener("drop", function (e) {
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    pickFile(f);
+  });
+  $("#dlTpl").addEventListener("click", function () {
+    downloadExcel("鉴赏家名单导入模板", ["uid", "备注"],
+      [["65200311", "内测用户A"], ["65200312", ""]]);
+    toast("模板已下载", "success");
+  });
+  $("#fillSample").addEventListener("click", function (e) {
+    e.stopPropagation();
+    $("#inputUids").value = "83642157\n91200558 内测用户A\n83642157\nabc123\n77441002 渠道合作方推荐\n65120033";
+    syncAddSubmit();
+  });
+
+  // 校验结果弹窗
+  $("#verifyOk").addEventListener("click", confirmVerify);
+  $("#verifyExport").addEventListener("click", exportFailList);
+
+  // 演示入口
+  $("#demoLoad").addEventListener("click", buildDemo);
+  $("#demoClear").addEventListener("click", clearDemo);
+
+  // ESC：优先关闭最上层弹窗
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (!$("#maskVerify").classList.contains("hidden")) { closeVerify(); return; }
+    if (!$("#maskLog").classList.contains("hidden")) { closeOpLog(); return; }
+    if (!$("#maskEdit").classList.contains("hidden")) { closeEdit(); return; }
+    if (!$("#maskAdd").classList.contains("hidden")) { closeAddModal(); return; }
+    if (!$("#maskConfirm").classList.contains("hidden")) { closeConfirm(); return; }
+  });
+}
+init();
+</script>
+</body>
+</html>
